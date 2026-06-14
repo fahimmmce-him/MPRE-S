@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>คอนโซลติดตามการเรียน · ป.โท</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0E1216; --panel:#161B22; --panel2:#1C232B; --line:#28323D;
+    --ink:#E9EEF3; --muted:#8A98A6; --faint:#5C6875;
+    --amber:#F5A623; --cyan:#46C7E8; --green:#3FBF8F; --red:#E8556B;
+    --r:14px;
+    --mono:'IBM Plex Mono',ui-monospace,monospace;
+    --thai:'IBM Plex Sans Thai',system-ui,sans-serif;
+    --latin:'IBM Plex Sans',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:
+      radial-gradient(1100px 600px at 85% -10%, rgba(245,166,35,.06), transparent 60%),
+      radial-gradient(900px 500px at -5% 0%, rgba(70,199,232,.05), transparent 55%),
+      var(--bg);
+    color:var(--ink); font-family:var(--thai); line-height:1.55;
+    -webkit-font-smoothing:antialiased; padding:0 16px 64px;
+  }
+  .wrap{max-width:1000px;margin:0 auto}
+  a{color:var(--cyan)}
+  .hidden{display:none!important}
+
+  .gate{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+  .card{width:100%;max-width:400px;background:linear-gradient(180deg,var(--panel),#12171d);border:1px solid var(--line);border-radius:18px;padding:30px}
+  .card .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--amber);display:flex;align-items:center;gap:8px}
+  .card .eyebrow::before{content:"";width:22px;height:1px;background:var(--amber)}
+  .card h1{font-size:23px;margin:10px 0 4px;font-weight:600}
+  .card p.lead{color:var(--muted);font-size:13.5px;margin:0 0 22px}
+  .card label{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin:14px 0 6px}
+  .card input{width:100%;background:#0d1116;border:1px solid var(--line);color:var(--ink);font-family:var(--thai);font-size:15px;border-radius:9px;padding:11px 13px}
+  .card input:focus-visible{outline:2px solid var(--cyan);outline-offset:1px;border-color:var(--cyan)}
+  .card .btn{width:100%;margin-top:20px}
+  .switch{margin-top:16px;text-align:center;font-size:13px;color:var(--muted)}
+  .switch a{cursor:pointer;font-weight:600}
+  .msg{margin-top:14px;font-size:13px;padding:10px 12px;border-radius:9px;display:none}
+  .msg.err{display:block;color:#ffb3bf;background:rgba(232,85,107,.12);border:1px solid rgba(232,85,107,.3)}
+  .msg.ok{display:block;color:#a9e8cf;background:rgba(63,191,143,.12);border:1px solid rgba(63,191,143,.3)}
+  .setup-steps{font-size:13px;color:var(--muted);line-height:1.8;margin:6px 0 0;padding-left:18px}
+  .setup-steps code{font-family:var(--mono);font-size:12px;background:#0d1116;padding:1px 6px;border-radius:5px;color:var(--cyan)}
+
+  header{padding:30px 2px 18px;display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap}
+  .brand .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--amber);display:flex;align-items:center;gap:8px}
+  .brand .eyebrow::before{content:"";width:22px;height:1px;background:var(--amber);display:inline-block}
+  .brand h1{font-size:clamp(22px,4vw,30px);margin:8px 0 0;font-weight:600;letter-spacing:-.01em}
+  .acct{text-align:right;font-family:var(--mono);font-size:12px;color:var(--muted);line-height:1.7}
+  .acct .who{color:var(--ink)}
+  .acct .links{margin-top:6px;display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+  .acct .links a{cursor:pointer;font-size:11px;color:var(--cyan)}
+  .acct .links a.danger{color:var(--faint)}
+  .acct .links a.danger:hover{color:var(--red)}
+  .save-dot{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--faint)}
+  .save-dot i{width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block;box-shadow:0 0 8px var(--green)}
+
+  .cluster{display:grid;grid-template-columns:1.1fr 1fr 1fr;gap:14px;margin-top:6px}
+  .gauge-card,.stat-card{background:linear-gradient(180deg,var(--panel),#12171d);border:1px solid var(--line);border-radius:var(--r);padding:18px}
+  .lbl{font-family:var(--mono);font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--faint)}
+  .gauge-card{display:flex;align-items:center;gap:16px}
+  .gauge-wrap{position:relative;width:118px;height:118px;flex:0 0 auto}
+  .gauge-wrap .pct{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .gauge-wrap .pct b{font-family:var(--mono);font-size:27px;font-weight:600;color:var(--ink);line-height:1}
+  .gauge-wrap .pct span{font-family:var(--mono);font-size:10px;color:var(--faint);margin-top:3px}
+  .gauge-meta b{display:block;font-size:15px;margin-top:7px}
+  .gauge-meta .sub{color:var(--muted);font-size:13px}
+  .stat-card{display:flex;flex-direction:column;justify-content:space-between;min-height:118px}
+  .stat-big{font-family:var(--mono);font-size:40px;font-weight:600;line-height:1;letter-spacing:-.02em}
+  .stat-big small{font-size:14px;color:var(--muted);font-weight:500;margin-left:4px}
+  .stat-card .where{font-size:14px;margin-top:6px;color:var(--ink)}
+  .stat-card .where .code{font-family:var(--mono);font-size:11px;color:var(--amber)}
+  .pill{align-self:flex-start;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border-radius:999px;border:1px solid var(--line);color:var(--muted);margin-top:10px}
+  .pill.live{color:var(--amber);border-color:rgba(245,166,35,.5);background:rgba(245,166,35,.08)}
+  .pill.done{color:var(--green);border-color:rgba(63,191,143,.4)}
+
+  .sec-head{display:flex;align-items:center;gap:12px;margin:34px 2px 14px}
+  .sec-head h2{font-size:13px;font-family:var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:500;margin:0;white-space:nowrap}
+  .sec-head .rule{height:1px;background:var(--line);flex:1}
+
+  .track{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  .day{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px;position:relative;overflow:hidden}
+  .day::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:var(--line)}
+  .day.active::before{background:var(--amber);box-shadow:0 0 14px rgba(245,166,35,.6)}
+  .day.past::before{background:var(--green)}
+  .day .dnum{font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:var(--faint);display:flex;justify-content:space-between;text-transform:uppercase}
+  .day .ddate{font-family:var(--mono);font-size:18px;font-weight:600;margin:6px 0 2px}
+  .day .dwk{font-size:12px;color:var(--muted);margin-bottom:10px}
+  .day .dcode{font-family:var(--mono);font-size:10.5px;color:var(--cyan)}
+  .day .dname{font-size:13.5px;font-weight:500;margin-top:2px;line-height:1.4}
+  .status-tag{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;padding:2px 7px;border-radius:6px;border:1px solid var(--line);color:var(--faint)}
+  .status-tag.active{color:var(--amber);border-color:rgba(245,166,35,.5)}
+  .status-tag.past{color:var(--green);border-color:rgba(63,191,143,.4)}
+
+  .subj{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);margin-bottom:12px;overflow:hidden}
+  .subj-head{display:flex;align-items:center;gap:14px;padding:16px 18px;cursor:pointer;user-select:none}
+  .subj-head:focus-visible{outline:2px solid var(--cyan);outline-offset:-2px}
+  .subj-idx{font-family:var(--mono);font-size:11px;color:var(--faint);width:24px;flex:0 0 auto}
+  .subj-tt{flex:1;min-width:0}
+  .subj-tt .code{font-family:var(--mono);font-size:11px;color:var(--amber);letter-spacing:.04em}
+  .subj-tt .nm{font-size:15.5px;font-weight:600;margin-top:1px}
+  .subj-tt .en{font-size:12px;color:var(--muted);font-family:var(--latin)}
+  .mini{flex:0 0 auto;width:120px;text-align:right}
+  .mini .frac{font-family:var(--mono);font-size:12px;color:var(--muted)}
+  .bar{height:6px;border-radius:99px;background:var(--panel2);margin-top:6px;overflow:hidden}
+  .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--amber),#ffce7a);border-radius:99px;transition:width .4s ease}
+  .subj.full .bar i{background:linear-gradient(90deg,var(--green),#7be0bd)}
+  .chev{flex:0 0 auto;color:var(--faint);transition:transform .25s ease}
+  .subj.open .chev{transform:rotate(180deg)}
+  .subj-body{display:none;border-top:1px solid var(--line);padding:18px}
+  .subj.open .subj-body{display:block}
+
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px}
+  .field{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+  .field label{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin-bottom:8px}
+  .field .cd{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .field .cd .days{font-family:var(--mono);font-size:12px;color:var(--amber)}
+  input[type=date]{background:#0d1116;border:1px solid var(--line);color:var(--ink);font-family:var(--mono);font-size:13px;border-radius:8px;padding:7px 9px;width:100%}
+  input[type=date]:focus-visible{outline:2px solid var(--cyan);outline-offset:1px;border-color:var(--cyan)}
+  ::-webkit-calendar-picker-indicator{filter:invert(.7)}
+
+  .topics-lbl{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin:2px 0 9px}
+  .chips{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:20px}
+  .chip{font-size:12px;color:var(--muted);background:#0f141a;border:1px solid var(--line);border-radius:7px;padding:4px 10px}
+
+  .task{display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid rgba(40,50,61,.55)}
+  .task:last-of-type{border-bottom:none}
+  .ck{appearance:none;-webkit-appearance:none;width:23px;height:23px;flex:0 0 auto;border:1.5px solid var(--faint);border-radius:6px;cursor:pointer;position:relative;transition:.15s}
+  .ck:checked{background:var(--green);border-color:var(--green)}
+  .ck:checked::after{content:"";position:absolute;left:8px;top:3px;width:4px;height:10px;border:solid #0E1216;border-width:0 2.5px 2.5px 0;transform:rotate(45deg)}
+  .ck:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+  .task .txt{flex:1;font-size:14px}
+  .task.done .txt{color:var(--faint);text-decoration:line-through}
+  .task .due{font-family:var(--mono);font-size:11px;color:var(--muted);white-space:nowrap}
+  .task .due.over{color:var(--red)}
+  .del{background:none;border:none;color:var(--faint);cursor:pointer;font-size:20px;line-height:1;padding:6px 8px;border-radius:8px;-webkit-tap-highlight-color:transparent}
+  .del:hover{color:var(--red);background:rgba(232,85,107,.1)}
+
+  .add{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+  .add input[type=text]{flex:1;min-width:160px;background:#0d1116;border:1px solid var(--line);color:var(--ink);font-family:var(--thai);font-size:14px;border-radius:8px;padding:9px 12px}
+  .add input[type=text]:focus-visible{outline:2px solid var(--cyan);outline-offset:1px;border-color:var(--cyan)}
+  .add input[type=date]{width:150px;flex:0 0 auto}
+  .btn{font-family:var(--thai);font-size:13.5px;font-weight:600;border-radius:8px;padding:10px 16px;cursor:pointer;border:1px solid transparent;white-space:nowrap}
+  .btn.primary{background:var(--amber);color:#1a1205;border-color:var(--amber)}
+  .btn.primary:hover{background:#ffb83f}
+  .btn.ghost{background:transparent;border-color:var(--line);color:var(--muted)}
+  .btn.ghost:hover{color:var(--ink);border-color:var(--faint)}
+  .btn:disabled{opacity:.5;cursor:default}
+  .btn:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+
+  footer{margin-top:34px;padding-top:18px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+  footer .note{font-size:12px;color:var(--faint);max-width:520px}
+  footer .acts{display:flex;gap:10px;flex-wrap:wrap}
+
+  .loading{min-height:60vh;display:flex;align-items:center;justify-content:center;color:var(--muted);font-family:var(--mono);font-size:13px}
+
+  @media (max-width:760px){
+    .cluster{grid-template-columns:1fr}
+    .track{grid-template-columns:1fr 1fr}
+    .mini{width:84px}
+    .row2{grid-template-columns:1fr}
+    .subj-head{padding:14px}
+    .add{flex-direction:column;align-items:stretch}
+    .add input[type=date]{width:100%}
+    .add .btn{width:100%;padding:12px}
+  }
+  @media (max-width:430px){ .track{grid-template-columns:1fr} }
+  @media (prefers-reduced-motion:reduce){ *{transition:none!important} }
+</style>
+</head>
+<body>
+
+<!-- ============ SETUP NOTICE ============ -->
+<div id="setupView" class="gate hidden">
+  <div class="card">
+    <div class="eyebrow">ต้องตั้งค่าก่อน</div>
+    <h1>ยังไม่ได้ใส่ค่า Firebase</h1>
+    <p class="lead">เปิดไฟล์ <code style="font-family:var(--mono);color:var(--cyan)">index.html</code> แล้ววางออบเจกต์ <code style="font-family:var(--mono);color:var(--cyan)">firebaseConfig</code> ที่ได้จากคอนโซล</p>
+    <ol class="setup-steps">
+      <li>Firebase Console &gt; Project settings &gt; General</li>
+      <li>ส่วน "Your apps" &gt; เพิ่ม Web app (&lt;/&gt;) ถ้ายังไม่มี</li>
+      <li>คัดลอกออบเจกต์ <code>firebaseConfig</code> มาวางแทนของเดิม</li>
+      <li>เปิดใช้ Authentication (Email/Password) และสร้าง Firestore Database</li>
+      <li>บันทึกไฟล์แล้ว push ขึ้น GitHub (Vercel จะ deploy เอง)</li>
+    </ol>
+  </div>
+</div>
+
+<!-- ============ AUTH ============ -->
+<div id="authView" class="gate hidden">
+  <div class="card">
+    <div class="eyebrow">หลักสูตรปริญญาโท</div>
+    <h1 id="authTitle">เข้าสู่ระบบ</h1>
+    <p class="lead">คอนโซลติดตามการเรียน — ข้อมูลของคุณเก็บแยกเป็นส่วนตัว</p>
+    <label for="email">อีเมล</label>
+    <input id="email" type="email" autocomplete="email" placeholder="you@example.com">
+    <label for="pw">รหัสผ่าน</label>
+    <input id="pw" type="password" autocomplete="current-password" placeholder="อย่างน้อย 6 ตัวอักษร">
+    <button class="btn primary" id="authBtn">เข้าสู่ระบบ</button>
+    <div class="msg" id="authMsg"></div>
+    <div class="switch" id="authSwitch">ยังไม่มีบัญชี? <a id="toSignup">สมัครสมาชิก</a></div>
+  </div>
+</div>
+
+<!-- ============ LOADING ============ -->
+<div id="loadingView" class="loading hidden">กำลังโหลดข้อมูล…</div>
+
+<!-- ============ APP ============ -->
+<div id="appView" class="wrap hidden">
+  <header>
+    <div class="brand">
+      <div class="eyebrow">หลักสูตรปริญญาโท · วิศวกรรมการผลิตและหุ่นยนต์</div>
+      <h1>คอนโซลติดตามการเรียน</h1>
+    </div>
+    <div class="acct">
+      <div>เข้าระบบในชื่อ <span class="who" id="whoTxt">—</span></div>
+      <div class="save-dot"><i></i> <span id="saveTxt">ซิงก์กับ Firebase</span></div>
+      <div class="links"><a id="signOut" class="danger">ออกจากระบบ</a></div>
+    </div>
+  </header>
+
+  <div class="cluster">
+    <div class="gauge-card">
+      <div class="gauge-wrap">
+        <svg viewBox="0 0 120 120" width="118" height="118">
+          <circle cx="60" cy="60" r="50" fill="none" stroke="#1C232B" stroke-width="11"/>
+          <circle id="gaugeArc" cx="60" cy="60" r="50" fill="none" stroke="#F5A623" stroke-width="11"
+                  stroke-linecap="round" transform="rotate(-90 60 60)"
+                  stroke-dasharray="314.16" stroke-dashoffset="314.16"/>
+        </svg>
+        <div class="pct"><b id="gaugePct">0%</b><span>เสร็จแล้ว</span></div>
+      </div>
+      <div class="gauge-meta">
+        <div class="lbl">ความคืบหน้ารวม</div>
+        <b id="gaugeFrac">0 / 0 งาน</b>
+        <div class="sub">ทั้ง 4 วิชา</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="lbl">สถานะตอนนี้</div>
+      <div class="where" id="nowWhere">—</div>
+      <div class="pill" id="nowPill">รอเริ่มเรียน</div>
+    </div>
+    <div class="stat-card">
+      <div class="lbl" id="cdLbl">นับถอยหลัง</div>
+      <div class="stat-big"><span id="cdNum">—</span><small id="cdUnit"></small></div>
+      <div class="where" id="cdWhere">—</div>
+    </div>
+  </div>
+
+  <div class="sec-head"><h2>ตารางเรียน · 15–18 มิ.ย. 2026</h2><span class="rule"></span></div>
+  <div class="track" id="track"></div>
+
+  <div class="sec-head"><h2>รายวิชา · งานและความคืบหน้า</h2><span class="rule"></span></div>
+  <div id="subjects"></div>
+
+  <footer>
+    <div class="note">ทุกการเปลี่ยนแปลงบันทึกลง Firestore ทันที · ปุ่มสำรองข้อมูลดาวน์โหลดทุกอย่างเป็นไฟล์ .json เก็บไว้เองได้ (แนะนำให้ทำเป็นระยะ)</div>
+    <div class="acts">
+      <button class="btn ghost" id="exportBtn">สำรองข้อมูล (.json)</button>
+      <button class="btn ghost" id="importBtn">กู้คืนข้อมูล</button>
+      <input id="importFile" type="file" accept="application/json" class="hidden">
+    </div>
+  </footer>
+</div>
+
+<script type="module">
+import { initializeApp } from 'https://esm.sh/firebase@11/app';
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut }
+  from 'https://esm.sh/firebase@11/auth';
+import { getFirestore, collection, query, where, getDocs, addDoc, updateDoc, deleteDoc, doc, serverTimestamp }
+  from 'https://esm.sh/firebase@11/firestore';
+
+/* ====================================================================
+   ⬇⬇⬇  วาง firebaseConfig ของคุณตรงนี้
+   (Firebase Console > Project settings > General > Your apps > Web)
+==================================================================== */
+const firebaseConfig = {
+  apiKey: "AIzaSyCPdQhZ9AdMzvhcC1k1YSp4Mjo42BDKMOM",
+  authDomain: "mpre-s.firebaseapp.com",
+  projectId: "mpre-s",
+  storageBucket: "mpre-s.firebasestorage.app",
+  messagingSenderId: "271786524327",
+  appId: "1:271786524327:web:ed12d07e6620f0e3fbe582"
+};
+/* ==================================================================== */
+
+const $=s=>document.querySelector(s);
+const show=id=>['setupView','authView','loadingView','appView'].forEach(v=>$('#'+v).classList.toggle('hidden',v!==id));
+
+if(String(firebaseConfig.apiKey).startsWith('PASTE')){ show('setupView'); throw new Error('config not set'); }
+const app=initializeApp(firebaseConfig);
+const auth=getAuth(app);
+const db=getFirestore(app);
+const SUBJECTS=collection(db,'subjects');
+
+const WK=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+const MO=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+
+const DEFAULTS=[
+  {code:'010255102',name_th:'ระเบียบวิธีวิจัยและสัมมนา',name_en:'Research Methodology and Seminar',credits:'3(3-0-6)',class_date:'2026-06-15',
+   topics:['การทบทวนวรรณกรรม','การเลือกหัวข้อวิจัย','การตั้งสมมติฐาน','การออกแบบการทดลอง','การเก็บรวบรวมข้อมูล','การวิเคราะห์และตีความข้อมูล','การเขียนรายงานวิจัย','การนำเสนอผลงาน'],
+   seedTasks:['อ่าน/เตรียมเอกสารก่อนเรียน','ทบทวนเนื้อหาหลังเรียน','ทำการบ้าน/แบบฝึกหัด']},
+  {code:'010255103',name_th:'คณิตศาสตร์และสถิติศาสตร์ประยุกต์',name_en:'Applied Mathematics and Statistics',credits:'3(3-0-6)',class_date:'2026-06-16',
+   topics:['การอนุมานเชิงสถิติ','การวิเคราะห์การถดถอย (Regression)','ANOVA / ANCOVA','เมทริกซ์และตัวแปรเชิงซ้อน','การแปลงลาปลาซ','การแปลงฟูเรียร์','สมการเชิงอนุพันธ์'],
+   seedTasks:['อ่าน/เตรียมเอกสารก่อนเรียน','ทบทวนเนื้อหาหลังเรียน','ทำการบ้าน/แบบฝึกหัด']},
+  {code:'010255207',name_th:'เทคโนโลยีการผลิตประยุกต์',name_en:'Applied Manufacturing Technology',credits:'3(3-0-6)',class_date:'2026-06-17',
+   topics:['การผลิตระดับไมโคร/นาโน','การพิมพ์ 3 มิติ (3D Printing)','วิศวกรรมย้อนกลับ','การสแกน 3 มิติ','วิศวกรรมความเที่ยงตรง','วัสดุและการออกแบบทางวิศวกรรม','การควบคุมกระบวนการทางสถิติ','การควบคุมคุณภาพ'],
+   seedTasks:['อ่าน/เตรียมเอกสารก่อนเรียน','ทบทวนเนื้อหาหลังเรียน','ทำการบ้าน/แบบฝึกหัด']},
+  {code:'010255302',name_th:'ระบบอัตโนมัติประยุกต์',name_en:'Applied Automation',credits:'3(3-0-6)',class_date:'2026-06-18',
+   topics:['ระบบควบคุมแบบวงรอบปิด','โครงสร้าง/การประมวลผลของไมโครโปรเซสเซอร์','การควบคุมแบบลำดับ','ระบบไฟฟ้า','ระบบนิวแมติกและไฮดรอลิก','PLC (Programmable Logic Controller)','การประยุกต์ใช้ในการผลิต'],
+   seedTasks:['อ่าน/เตรียมเอกสารก่อนเรียน','ทบทวนเนื้อหาหลังเรียน','ทำการบ้าน/แบบฝึกหัด']},
+];
+
+let state={subjects:[]}, openId=null, signupMode=false, uid=null;
+const uuid=()=> (crypto.randomUUID?crypto.randomUUID():'t'+Date.now()+Math.random().toString(16).slice(2));
+
+const sod=d=>new Date(d.getFullYear(),d.getMonth(),d.getDate());
+const parseISO=s=>{if(!s)return null;const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);};
+const fmt=d=>d.getDate()+' '+MO[d.getMonth()]+' '+(d.getFullYear()+543).toString().slice(-2);
+const diffDays=t=>Math.round((sod(t)-sod(new Date()))/86400000);
+const flag=t=>{const e=$('#saveTxt');e.textContent=t;clearTimeout(flag._t);flag._t=setTimeout(()=>e.textContent='ซิงก์กับ Firebase',1600);};
+
+/* ---------- AUTH UI ---------- */
+function renderAuthMode(){
+  $('#authTitle').textContent=signupMode?'สมัครสมาชิก':'เข้าสู่ระบบ';
+  $('#authBtn').textContent=signupMode?'สมัครสมาชิก':'เข้าสู่ระบบ';
+  $('#authSwitch').innerHTML=signupMode?'มีบัญชีอยู่แล้ว? <a id="toLogin">เข้าสู่ระบบ</a>':'ยังไม่มีบัญชี? <a id="toSignup">สมัครสมาชิก</a>';
+  $('#pw').setAttribute('autocomplete',signupMode?'new-password':'current-password');
+}
+document.addEventListener('click',e=>{
+  if(e.target.id==='toSignup'){signupMode=true;authMsg();renderAuthMode();}
+  if(e.target.id==='toLogin'){signupMode=false;authMsg();renderAuthMode();}
+});
+function authMsg(text,kind){const m=$('#authMsg');if(!text){m.className='msg';m.textContent='';return;}m.className='msg '+(kind||'err');m.textContent=text;}
+$('#authBtn').addEventListener('click',doAuth);
+$('#pw').addEventListener('keydown',e=>{if(e.key==='Enter')doAuth();});
+async function doAuth(){
+  const email=$('#email').value.trim(), password=$('#pw').value;
+  if(!email||password.length<6){authMsg('กรอกอีเมลและรหัสผ่าน (อย่างน้อย 6 ตัว)');return;}
+  $('#authBtn').disabled=true;
+  try{
+    if(signupMode) await createUserWithEmailAndPassword(auth,email,password);
+    else           await signInWithEmailAndPassword(auth,email,password);
+  }catch(err){authMsg(translateErr(err.code||err.message));}
+  finally{$('#authBtn').disabled=false;}
+}
+function translateErr(c){
+  if(/wrong-password|invalid-credential|user-not-found/.test(c))return 'อีเมลหรือรหัสผ่านไม่ถูกต้อง';
+  if(/email-already-in-use/.test(c))return 'อีเมลนี้สมัครไว้แล้ว ลองเข้าสู่ระบบ';
+  if(/invalid-email/.test(c))return 'รูปแบบอีเมลไม่ถูกต้อง';
+  if(/weak-password/.test(c))return 'รหัสผ่านสั้นเกินไป (อย่างน้อย 6 ตัว)';
+  if(/network/.test(c))return 'เชื่อมต่อเครือข่ายไม่ได้';
+  return c;
+}
+$('#signOut').addEventListener('click',()=>signOut(auth));
+
+onAuthStateChanged(auth, user=>{ if(user){uid=user.uid;enterApp(user);} else {uid=null;show('authView');renderAuthMode();} });
+
+/* ---------- LOAD / SEED ---------- */
+async function enterApp(user){
+  show('loadingView'); $('#whoTxt').textContent=user.email;
+  try{ await loadData(); show('appView'); render(); }
+  catch(err){ alert('โหลดข้อมูลไม่สำเร็จ: '+(err.message||err)); show('authView'); }
+}
+async function loadData(){
+  const snap=await getDocs(query(SUBJECTS, where('uid','==',uid)));
+  let subs=snap.docs.map(d=>({id:d.id, ...d.data()}));
+  if(subs.length===0){ await seedDefaults(); const s2=await getDocs(query(SUBJECTS, where('uid','==',uid))); subs=s2.docs.map(d=>({id:d.id,...d.data()})); }
+  subs.sort((a,b)=>(a.position||0)-(b.position||0));
+  subs.forEach(s=>{ if(!Array.isArray(s.tasks))s.tasks=[]; });
+  state.subjects=subs;
+}
+async function seedDefaults(){
+  for(const[i,d] of DEFAULTS.entries()){
+    await addDoc(SUBJECTS,{uid,code:d.code,name_th:d.name_th,name_en:d.name_en,credits:d.credits,
+      class_date:d.class_date,exam_date:null,topics:d.topics,position:i,created_at:serverTimestamp(),
+      tasks:d.seedTasks.map((t,j)=>({id:uuid(),text:t,due:j===0?d.class_date:null,done:false}))});
+  }
+}
+const subjectRef=id=>doc(db,'subjects',id);
+async function saveSubject(s,patch){ flag('กำลังบันทึก…'); try{ await updateDoc(subjectRef(s.id),patch); flag('บันทึกแล้ว'); }catch(e){ flag('บันทึกไม่สำเร็จ'); } }
+
+/* ---------- RENDER ---------- */
+function render(){
+  let total=0,done=0; state.subjects.forEach(s=>s.tasks.forEach(t=>{total++;if(t.done)done++;}));
+  const pct=total?Math.round(done/total*100):0;
+  $('#gaugePct').textContent=pct+'%'; $('#gaugeFrac').textContent=done+' / '+total+' งาน';
+  const C=314.16,arc=$('#gaugeArc'); arc.style.strokeDashoffset=(C-C*pct/100).toFixed(2); arc.style.stroke=pct===100?'#3FBF8F':'#F5A623';
+
+  const track=$('#track'); track.innerHTML=''; let activeSubj=null,nextSubj=null;
+  state.subjects.forEach((s,i)=>{
+    const cd=parseISO(s.class_date); const dd=cd?diffDays(cd):999; let cls='',tag='รอเรียน',tcls='';
+    if(dd===0){cls='active';tag='วันนี้';tcls='active';activeSubj=s;} else if(dd<0){cls='past';tag='เรียนแล้ว';tcls='past';}
+    if(dd>0&&!nextSubj)nextSubj=s;
+    const el=document.createElement('div'); el.className='day '+cls;
+    el.innerHTML=`<div class="dnum"><span>วัน ${i+1}</span><span class="status-tag ${tcls}">${tag}</span></div>
+      <div class="ddate">${cd?cd.getDate()+' '+MO[cd.getMonth()]:'—'}</div>
+      <div class="dwk">${cd?'วัน'+WK[cd.getDay()]:''}</div>
+      <div class="dcode">${s.code}</div><div class="dname">${s.name_th}</div>`;
+    track.appendChild(el);
+  });
+
+  const nw=$('#nowWhere'),np=$('#nowPill');
+  if(activeSubj){nw.innerHTML=`เรียนวันนี้ · <span class="code">${activeSubj.code}</span><br>${activeSubj.name_th}`;np.textContent='กำลังเรียน';np.className='pill live';}
+  else if(nextSubj){nw.innerHTML=`วิชาถัดไป · <span class="code">${nextSubj.code}</span><br>${nextSubj.name_th}`;np.textContent='รอเริ่มเรียน';np.className='pill';}
+  else{nw.innerHTML='เรียนครบทั้ง 4 วิชาแล้ว';np.textContent='จบคอร์ส';np.className='pill done';}
+
+  const cdNum=$('#cdNum'),cdUnit=$('#cdUnit'),cdWhere=$('#cdWhere'),cdLbl=$('#cdLbl');
+  const exams=state.subjects.filter(s=>s.exam_date).map(s=>({s,d:parseISO(s.exam_date),diff:diffDays(parseISO(s.exam_date))})).filter(x=>x.diff>=0).sort((a,b)=>a.diff-b.diff);
+  if(exams.length){const e=exams[0];cdLbl.textContent='นับถอยหลังวันสอบ';cdNum.textContent=e.diff===0?'วันนี้':e.diff;cdUnit.textContent=e.diff===0?'':' วัน';
+    cdWhere.innerHTML=`<span style="font-family:var(--mono);font-size:11px;color:var(--cyan)">${e.s.code}</span> ${e.s.name_th}<br><span style="color:var(--muted);font-size:12px">สอบ ${WK[e.d.getDay()]} ${fmt(e.d)}</span>`;
+  }else{const st=parseISO('2026-06-15');const ds=diffDays(st);cdLbl.textContent='นับถอยหลังเปิดเรียน';
+    if(ds>0){cdNum.textContent=ds;cdUnit.textContent=' วัน';cdWhere.innerHTML='ถึงวันเรียนวันแรก (15 มิ.ย.)<br><span style="color:var(--faint);font-size:12px">ยังไม่ได้ตั้งวันสอบ — เพิ่มได้ในแต่ละวิชา</span>';}
+    else{cdNum.textContent='—';cdUnit.textContent='';cdWhere.innerHTML='<span style="color:var(--faint);font-size:13px">ยังไม่ได้ตั้งวันสอบ<br>เปิดวิชาด้านล่างเพื่อกรอก</span>';}}
+
+  const box=$('#subjects'); box.innerHTML='';
+  state.subjects.forEach((s,i)=>{
+    const t=s.tasks.length,d=s.tasks.filter(x=>x.done).length,p=t?Math.round(d/t*100):0,open=openId===s.id;
+    const sec=document.createElement('section'); sec.className='subj'+(open?' open':'')+(p===100&&t>0?' full':'');
+    const exTxt=s.exam_date?(()=>{const k=diffDays(parseISO(s.exam_date));return k>0?`อีก ${k} วัน`:k===0?'สอบวันนี้':`ผ่านมาแล้ว ${-k} วัน`;})():'ยังไม่ตั้ง';
+    const cdk=s.class_date?diffDays(parseISO(s.class_date)):null; const cdTxt=cdk===null?'':cdk>0?`อีก ${cdk} วัน`:cdk===0?'วันนี้':'ผ่านแล้ว';
+    sec.innerHTML=`
+      <div class="subj-head" tabindex="0" role="button" aria-expanded="${open}" data-toggle="${s.id}">
+        <div class="subj-idx">0${i+1}</div>
+        <div class="subj-tt"><div class="code">${s.code} · ${s.credits||''}</div><div class="nm">${s.name_th}</div><div class="en">${s.name_en||''}</div></div>
+        <div class="mini"><div class="frac">${d}/${t} งาน</div><div class="bar"><i style="width:${p}%"></i></div></div>
+        <div class="chev">▾</div>
+      </div>
+      <div class="subj-body">
+        <div class="row2">
+          <div class="field"><label>วันเรียน</label><div class="cd"><input type="date" value="${s.class_date||''}" data-cls="${s.id}"><span class="days">${cdTxt}</span></div></div>
+          <div class="field"><label>วันสอบ — เพิ่ม/แก้ได้</label><div class="cd"><input type="date" value="${s.exam_date||''}" data-exam="${s.id}"><span class="days">${exTxt}</span></div></div>
+        </div>
+        <div class="topics-lbl">หัวข้อในรายวิชา</div>
+        <div class="chips">${(s.topics||[]).map(x=>`<span class="chip">${x}</span>`).join('')}</div>
+        <div class="topics-lbl">งาน / การบ้าน / สิ่งที่ต้องทำ</div>
+        <div>${s.tasks.map(tk=>taskRow(s.id,tk)).join('')||'<div style="color:var(--faint);font-size:13px;padding:8px 0">ยังไม่มีงาน — เพิ่มด้านล่างได้เลย</div>'}</div>
+        <div class="add">
+          <input type="text" placeholder="เพิ่มงานใหม่… (เช่น ส่งโครงร่างวิจัย)" data-newtxt="${s.id}">
+          <input type="date" data-newdue="${s.id}" title="กำหนดส่ง (ไม่บังคับ)">
+          <button class="btn primary" data-add="${s.id}">เพิ่มงาน</button>
+        </div>
+      </div>`;
+    box.appendChild(sec);
+  });
+}
+function taskRow(sid,tk){
+  const due=parseISO(tk.due); let dtxt='',over=''; if(due){const k=diffDays(due);dtxt=fmt(due);if(!tk.done&&k<0)over=' over';}
+  return `<div class="task${tk.done?' done':''}">
+    <input type="checkbox" class="ck" ${tk.done?'checked':''} data-done="${sid}|${tk.id}" aria-label="ทำเสร็จ">
+    <span class="txt">${tk.text}</span>${dtxt?`<span class="due${over}">${dtxt}</span>`:''}
+    <button class="del" data-del="${sid}|${tk.id}" aria-label="ลบ">×</button></div>`;
+}
+
+/* ---------- MUTATIONS ---------- */
+document.addEventListener('click',async e=>{
+  const tg=e.target.closest('[data-toggle]'); if(tg){openId=openId===tg.dataset.toggle?null:tg.dataset.toggle;render();return;}
+  const ad=e.target.closest('[data-add]'); if(ad){addTask(ad.dataset.add);return;}
+  const dl=e.target.closest('[data-del]'); if(dl){const[sid,tid]=dl.dataset.del.split('|');const s=state.subjects.find(x=>x.id===sid);if(!s)return;s.tasks=s.tasks.filter(x=>x.id!==tid);render();await saveSubject(s,{tasks:s.tasks});}
+});
+document.addEventListener('change',async e=>{
+  const ck=e.target.closest('[data-done]'); if(ck){const[sid,tid]=ck.dataset.done.split('|');const s=state.subjects.find(x=>x.id===sid);const tk=s&&s.tasks.find(x=>x.id===tid);if(!tk)return;tk.done=ck.checked;render();await saveSubject(s,{tasks:s.tasks});return;}
+  const ex=e.target.closest('[data-exam]'); if(ex){const s=state.subjects.find(x=>x.id===ex.dataset.exam);s.exam_date=ex.value||null;render();await saveSubject(s,{exam_date:s.exam_date});return;}
+  const cl=e.target.closest('[data-cls]'); if(cl){const s=state.subjects.find(x=>x.id===cl.dataset.cls);s.class_date=cl.value||null;render();await saveSubject(s,{class_date:s.class_date});return;}
+});
+document.addEventListener('keydown',e=>{
+  if(e.target.matches('[data-newtxt]')&&e.key==='Enter')addTask(e.target.dataset.newtxt);
+  if(e.target.matches('[data-toggle]')&&(e.key==='Enter'||e.key===' ')){e.preventDefault();openId=openId===e.target.dataset.toggle?null:e.target.dataset.toggle;render();}
+});
+async function addTask(sid){
+  const txt=document.querySelector(`[data-newtxt="${sid}"]`),due=document.querySelector(`[data-newdue="${sid}"]`);
+  const v=txt.value.trim(); if(!v)return; const s=state.subjects.find(x=>x.id===sid);
+  s.tasks.push({id:uuid(),text:v,due:due.value||null,done:false}); openId=sid; render();
+  await saveSubject(s,{tasks:s.tasks});
+}
+
+/* ---------- BACKUP / RESTORE ---------- */
+$('#exportBtn').addEventListener('click',()=>{
+  const clean=state.subjects.map(({id,uid,created_at,...rest})=>rest);
+  const blob=new Blob([JSON.stringify({exported_at:new Date().toISOString(),subjects:clean},null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='study-tracker-backup-'+new Date().toISOString().slice(0,10)+'.json'; a.click();
+});
+$('#importBtn').addEventListener('click',()=>$('#importFile').click());
+$('#importFile').addEventListener('change',async e=>{
+  const file=e.target.files[0]; if(!file)return;
+  if(!confirm('กู้คืนจะลบข้อมูลปัจจุบันทั้งหมดแล้วแทนที่ด้วยไฟล์นี้ ดำเนินการต่อ?')){e.target.value='';return;}
+  try{
+    const data=JSON.parse(await file.text()); if(!Array.isArray(data.subjects))throw new Error('ไฟล์ไม่ถูกต้อง');
+    flag('กำลังกู้คืน…');
+    const snap=await getDocs(query(SUBJECTS, where('uid','==',uid)));
+    for(const d of snap.docs) await deleteDoc(doc(db,'subjects',d.id));
+    for(const[i,s] of data.subjects.entries()){
+      await addDoc(SUBJECTS,{uid,code:s.code,name_th:s.name_th,name_en:s.name_en||null,credits:s.credits||null,
+        class_date:s.class_date||null,exam_date:s.exam_date||null,topics:s.topics||[],position:i,created_at:serverTimestamp(),
+        tasks:(s.tasks||[]).map(t=>({id:t.id||uuid(),text:t.text,due:t.due||null,done:!!t.done}))});
+    }
+    await loadData(); flag('กู้คืนแล้ว'); render();
+  }catch(err){alert('กู้คืนไม่สำเร็จ: '+(err.message||err));flag('กู้คืนไม่สำเร็จ');}
+  e.target.value='';
+});
+</script>
+</body>
+</html>
