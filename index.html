@@ -275,7 +275,7 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js';
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut }
   from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js';
-import { getFirestore, collection, query, where, getDocs, addDoc, updateDoc, deleteDoc, doc, serverTimestamp }
+import { getFirestore, collection, query, where, getDocs, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp }
   from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js';
 
 /* ====================================================================
@@ -319,7 +319,7 @@ const DEFAULTS=[
    seedTasks:['อ่าน/เตรียมเอกสารก่อนเรียน','ทบทวนเนื้อหาหลังเรียน','ทำการบ้าน/แบบฝึกหัด']},
 ];
 
-let state={subjects:[]}, openId=null, signupMode=false, uid=null;
+let state={subjects:[]}, openId=null, signupMode=false, uid=null, unsub=null, seededOnce=false;
 const uuid=()=> (crypto.randomUUID?crypto.randomUUID():'t'+Date.now()+Math.random().toString(16).slice(2));
 
 const sod=d=>new Date(d.getFullYear(),d.getMonth(),d.getDate());
@@ -362,21 +362,25 @@ function translateErr(c){
 }
 $('#signOut').addEventListener('click',()=>signOut(auth));
 
-onAuthStateChanged(auth, user=>{ if(user){uid=user.uid;enterApp(user);} else {uid=null;show('authView');renderAuthMode();} });
+onAuthStateChanged(auth, user=>{ if(user){uid=user.uid;enterApp(user);} else {if(unsub){unsub();unsub=null;} uid=null;state.subjects=[];show('authView');renderAuthMode();} });
 
-/* ---------- LOAD / SEED ---------- */
-async function enterApp(user){
-  show('loadingView'); $('#whoTxt').textContent=user.email;
-  try{ await loadData(); show('appView'); render(); }
-  catch(err){ alert('โหลดข้อมูลไม่สำเร็จ: '+(err.message||err)); show('authView'); }
+/* ---------- REALTIME LOAD / SEED ---------- */
+function enterApp(user){
+  show('loadingView'); $('#whoTxt').textContent=user.email; seededOnce=false;
+  startRealtime();
 }
-async function loadData(){
-  const snap=await getDocs(query(SUBJECTS, where('uid','==',uid)));
-  let subs=snap.docs.map(d=>({id:d.id, ...d.data()}));
-  if(subs.length===0){ await seedDefaults(); const s2=await getDocs(query(SUBJECTS, where('uid','==',uid))); subs=s2.docs.map(d=>({id:d.id,...d.data()})); }
-  subs.sort((a,b)=>(a.position||0)-(b.position||0));
-  subs.forEach(s=>{ if(!Array.isArray(s.tasks))s.tasks=[]; });
-  state.subjects=subs;
+function startRealtime(){
+  if(unsub) unsub();
+  const q=query(SUBJECTS, where('uid','==',uid));
+  unsub=onSnapshot(q, async snap=>{
+    let subs=snap.docs.map(d=>({id:d.id, ...d.data()}));
+    // ผู้ใช้ใหม่ยังไม่มีข้อมูล → สร้าง 4 วิชาให้ (ครั้งเดียว) แล้ว listener จะรับค่าใหม่เอง
+    if(subs.length===0 && !seededOnce){ seededOnce=true; try{ await seedDefaults(); }catch(e){ alert('สร้างข้อมูลเริ่มต้นไม่สำเร็จ: '+(e.message||e)); } return; }
+    subs.sort((a,b)=>(a.position||0)-(b.position||0));
+    subs.forEach(s=>{ if(!Array.isArray(s.tasks))s.tasks=[]; });
+    state.subjects=subs;
+    show('appView'); render();
+  }, err=>{ alert('โหลดข้อมูลไม่สำเร็จ: '+(err.message||err)); show('authView'); });
 }
 async function seedDefaults(){
   for(const[i,d] of DEFAULTS.entries()){
@@ -495,6 +499,7 @@ $('#importFile').addEventListener('change',async e=>{
   try{
     const data=JSON.parse(await file.text()); if(!Array.isArray(data.subjects))throw new Error('ไฟล์ไม่ถูกต้อง');
     flag('กำลังกู้คืน…');
+    seededOnce=true; // กันไม่ให้ระบบสร้างวิชาเริ่มต้นซ้ำระหว่างที่ลบข้อมูลเก่า
     const snap=await getDocs(query(SUBJECTS, where('uid','==',uid)));
     for(const d of snap.docs) await deleteDoc(doc(db,'subjects',d.id));
     for(const[i,s] of data.subjects.entries()){
@@ -502,7 +507,7 @@ $('#importFile').addEventListener('change',async e=>{
         class_date:s.class_date||null,exam_date:s.exam_date||null,topics:s.topics||[],position:i,created_at:serverTimestamp(),
         tasks:(s.tasks||[]).map(t=>({id:t.id||uuid(),text:t.text,due:t.due||null,done:!!t.done}))});
     }
-    await loadData(); flag('กู้คืนแล้ว'); render();
+    flag('กู้คืนแล้ว'); // หน้าจอจะอัปเดตเองจาก realtime
   }catch(err){alert('กู้คืนไม่สำเร็จ: '+(err.message||err));flag('กู้คืนไม่สำเร็จ');}
   e.target.value='';
 });
